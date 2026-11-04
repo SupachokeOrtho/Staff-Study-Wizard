@@ -1,0 +1,51 @@
+{
+  "workflow": [
+    {"id":"project","title":"ข้อมูลโครงการ","english":"Project information","description":"เริ่มต้นด้วยข้อมูลของงาน เพื่อให้ข้อพิจารณามีที่มาและผู้รับผิดชอบที่ชัดเจน"},
+    {"id":"desired","title":"สภาวะพึงประสงค์","english":"Desired state","description":"สภาวะพึงประสงค์ คือ ภาพที่ควรจะเป็นตามยุทธศาสตร์ นโยบาย แผน คำสั่ง หรือมาตรฐานที่เกี่ยวข้อง"},
+    {"id":"current","title":"สภาวะปัจจุบัน","english":"Current state","description":"สภาวะปัจจุบัน คือ ภาพที่เกิดขึ้นจริงจากการสังเกตหรือข้อมูลที่รวบรวมได้"},
+    {"id":"problem","title":"ปัญหา / ช่องว่าง","english":"Problem / Gap","description":"เปรียบเทียบสิ่งที่ควรจะเป็นกับสิ่งที่เกิดขึ้นจริง แล้วระบุสภาวะที่ไม่เป็นไปตามความต้องการ"},
+    {"id":"effects","title":"ผลกระทบ","english":"Effects","description":"ระบุผลกระทบที่เกิดจากปัญหา พร้อมผู้ได้รับผลกระทบและหลักฐานเชิงประจักษ์"},
+    {"id":"causes","title":"วิเคราะห์สาเหตุ","english":"Cause analysis / Root cause","description":"พิจารณาสาเหตุที่เป็นไปได้ แล้วใช้หลักฐานแยกสาเหตุที่แท้จริงออกจากข้อสันนิษฐาน"},
+    {"id":"statement","title":"ข้อแถลงปัญหา","english":"Problem statement","description":"กำหนดกิจ มุ่งประสงค์ และเงื่อนไขความสำเร็จก่อนเริ่มพิจารณาวิธีการแก้ปัญหา"},
+    {"id":"solutions","title":"วิธีการแก้ปัญหา","english":"Candidate solutions","description":"เสนอวิธีการที่เป็นทางเลือกอิสระ สอดคล้องกับกิจ และขจัดหรือลดสาเหตุของปัญหา"},
+    {"id":"sfa","title":"ทดสอบ SFA","english":"Suitability · Feasibility · Acceptability","description":"ทดสอบแต่ละวิธีอย่างอิสระ วิธีที่ผ่านต้องผ่านทั้ง S, F และ A"},
+    {"id":"superior","title":"เปรียบเทียบวิธีการ","english":"Superior solution","description":"เปรียบเทียบเฉพาะวิธีที่ผ่าน SFA โดยใช้เกณฑ์ประสิทธิผลและประสิทธิภาพ"},
+    {"id":"conclusion","title":"ข้อยุติ","english":"Conclusion","description":"ทบทวนผลการพิจารณา เลือกวิธีที่เสนอ และเรียบเรียงข้อยุติสำหรับผู้ตัดสินใจ"},
+    {"id":"preview","title":"ตรวจทาน / ส่งออก","english":"Final preview / Export","description":"ตรวจสอบเอกสารฉบับเต็มก่อนคัดลอก ดาวน์โหลด หรือพิมพ์"}
+  ],
+  "sections": {
+    "project":{"title":"รายละเอียดโครงการ","tag":"PROJECT DETAILS","fields":[
+      {"key":"title","label":"ชื่อเรื่อง / Project title","required":true,"type":"text","placeholder":"เช่น การลดระยะเวลาจัดทำรายงานประจำเดือน"},
+      {"key":"author","label":"ผู้จัดทำ","required":true,"type":"text"},
+      {"key":"unit","label":"หน่วย","required":true,"type":"text"},
+      {"key":"date","label":"วันที่","required":true,"type":"date"},
+      {"key":"notes","label":"หมายเหตุ"}]},
+    "desired":{"title":"ภาพที่ควรจะเป็น","tag":"THE EXPECTED CONDITION","fields":[
+      {"key":"policy","label":"ยุทธศาสตร์ / นโยบาย / คำสั่ง / แผนที่เกี่ยวข้อง","required":true},
+      {"key":"facts","label":"ข้อเท็จจริงอ้างอิง","required":true},
+      {"key":"state","label":"สภาวะพึงประสงค์","required":true},
+      {"key":"evidence","label":"หลักฐาน / หมายเหตุ"}]},
+    "current":{"title":"ภาพที่เกิดขึ้นจริง","tag":"THE OBSERVED CONDITION","fields":[
+      {"key":"state","label":"สภาพการดำเนินงานในปัจจุบัน","required":true},
+      {"key":"facts","label":"ข้อเท็จจริงที่สังเกตพบ","required":true},
+      {"key":"metrics","label":"ตัวเลข / เวลา / เหตุการณ์","required":true},
+      {"key":"evidence","label":"หลักฐาน / หมายเหตุ"}]},
+    "problem":{"title":"ระบุปัญหาจากช่องว่าง","tag":"DEFINE THE GAP","fields":[
+      {"key":"gap","label":"ความแตกต่าง / GAP","required":true},
+      {"key":"undesired","label":"สภาวะไม่พึงประสงค์","required":true},
+      {"key":"text","label":"ข้อความปัญหา","required":true}]}
+  },
+  "effectFields":[{"key":"text","label":"ผลกระทบ","required":true},{"key":"affected","label":"ผู้/หน่วยที่ได้รับผลกระทบ","type":"text","required":true},{"key":"severity","label":"ความรุนแรง","type":"select","options":["ต่ำ","ปานกลาง","สูง","สูงมาก"],"required":true},{"key":"evidence","label":"หลักฐานเชิงประจักษ์","required":true}],
+  "causeFields":[{"key":"text","label":"สาเหตุ","required":true},{"key":"category","label":"ประเภท","type":"select","options":["คน","ขั้นตอน","นโยบาย","สถานที่","ระบบ","สภาพแวดล้อม","ผู้สนับสนุน / Supplier","อื่น ๆ"],"required":true},{"key":"evidence","label":"หลักฐาน","required":true},{"key":"link","label":"เหตุผลที่เชื่อมโยงกับปัญหา","required":true}],
+  "rootFields":[{"key":"text","label":"สาเหตุที่แท้จริง","required":true},{"key":"reason","label":"เหตุผลที่เลือก","required":true},{"key":"reduction","label":"ถ้าแก้สาเหตุนี้ ผลกระทบจะลดลงอย่างไร","required":true}],
+  "solutionFields":[{"key":"name","label":"ชื่อวิธีการ","type":"text","required":true},{"key":"details","label":"รายละเอียด","required":true},{"key":"resources","label":"ทรัพยากรหลัก","required":true},{"key":"notes","label":"หมายเหตุ"}],
+  "solutionReminder":["สอดคล้องกับกิจ","แก้ปัญหาได้อย่างสมบูรณ์","แตกต่างจากวิธีอื่นอย่างชัดเจน","ไม่ใช่เพียงขั้นตอนต่อเนื่องของวิธีเดียวกัน","สามารถดำเนินการภายใต้ทรัพยากรที่มีหรือสามารถจัดหาได้"],
+  "sfa": {
+    "S":{"title":"Suitability — ความเหมาะสม","help":"ถ้าดำเนินการตามวิธีนี้ จะสามารถบรรลุมุ่งประสงค์และ END STATE ได้หรือไม่?","fields":[{"key":"status","label":"ผล S","type":"select","options":[{"value":"pass","label":"ผ่าน"},{"value":"fail","label":"ไม่ผ่าน"}],"required":true},{"key":"reason","label":"เหตุผล","required":true}]},
+    "F":{"title":"Feasibility — ความเป็นไปได้","help":"พิจารณา คน งบประมาณ วัสดุ / อุปกรณ์ วิธีการ / การบริหาร เวลา กฎหมาย ระเบียบ อำนาจหน้าที่ และขีดความสามารถ","fields":[{"key":"status","label":"ผล F","type":"select","options":[{"value":"pass","label":"ผ่าน"},{"value":"fail","label":"ไม่ผ่าน"}],"required":true},{"key":"reason","label":"เหตุผล","required":true},{"key":"constraints","label":"ข้อจำกัด"},{"key":"additional","label":"แนวทางจัดหาทรัพยากรเพิ่มเติม"}]},
+    "A":{"title":"Acceptability — การยอมรับได้","help":"ประเมินทั้งความคุ้มค่าและความเสี่ยงที่เหลือหลังใช้มาตรการลดความเสี่ยง","fields":[{"key":"cost","label":"ต้นทุน / ทรัพยากรที่ใช้","required":true},{"key":"benefit","label":"ผลประโยชน์ที่ได้รับ","required":true},{"key":"worth","label":"ความคุ้มค่า","required":true},{"key":"risk","label":"ความเสี่ยง","required":true},{"key":"likelihood","label":"Likelihood / โอกาสเกิด","type":"select","options":["1 — ต่ำมาก","2 — ต่ำ","3 — ปานกลาง","4 — สูง","5 — สูงมาก"],"required":true},{"key":"severity","label":"Severity / ความรุนแรง","type":"select","options":["1 — ต่ำมาก","2 — ต่ำ","3 — ปานกลาง","4 — สูง","5 — สูงมาก"],"required":true},{"key":"impact","label":"ผลต่อมุ่งประสงค์","required":true},{"key":"mitigation","label":"มาตรการลดความเสี่ยง","required":true},{"key":"residual","label":"Residual Risk / ความเสี่ยงคงเหลือ","required":true},{"key":"riskAccepted","label":"การยอมรับความเสี่ยง","type":"select","options":[{"value":"yes","label":"ยอมรับได้"},{"value":"no","label":"ยอมรับไม่ได้"}],"required":true},{"key":"status","label":"ผล A","type":"select","options":[{"value":"pass","label":"ผ่าน"},{"value":"fail","label":"ไม่ผ่าน"}],"required":true},{"key":"reason","label":"เหตุผล","required":true}]}
+  },
+  "criterionCategories":[{"value":"effectiveness","label":"Effectiveness / ประสิทธิผล","help":"สร้างเกณฑ์จากมุ่งประสงค์และ END STATE"},{"value":"efficiency","label":"Efficiency / ประสิทธิภาพ","help":"สร้างเกณฑ์จากขั้นตอน ทรัพยากร เวลา ค่าใช้จ่าย ความสะดวก และประสิทธิภาพการดำเนินงาน"}],
+  "validation":{"weightTotals":[1,100],"weightTolerance":0.000001,"scoreMin":1,"scoreMax":5,"minimumEffects":1,"minimumCauses":1,"minimumSolutions":1,"minimumEndStates":1},
+  "help":{"root":"สาเหตุที่เป็นไปได้ไม่ใช่สาเหตุที่แท้จริงทุกข้อ โปรดอ้างอิงหลักฐานและอธิบายเหตุผลที่เลือก","task":"สิ่งที่ต้องดำเนินการเพื่อขจัดหรือลดสาเหตุของปัญหา","purpose":"ผลลัพธ์สุดท้ายที่ต้องการให้เกิดขึ้น","endStates":"ระบุเงื่อนไขความสำเร็จที่วัดหรือสังเกตได้","singlePass":"มีวิธีผ่าน SFA เพียง 1 วิธี สามารถนำไปสู่ข้อยุติได้","noPass":"ยังไม่มีวิธีผ่าน SFA โปรดทบทวนวิธีการหรือผลการประเมินก่อนดำเนินการต่อ"}
+}

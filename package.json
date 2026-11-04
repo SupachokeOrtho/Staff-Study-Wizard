@@ -1,0 +1,12 @@
+{
+  "name": "staff-study-wizard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first Thai Staff Study wizard. No runtime dependencies or build step.",
+  "scripts": {
+    "start": "python3 -m http.server 8000 --bind 0.0.0.0",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {"node": ">=20"}
+}

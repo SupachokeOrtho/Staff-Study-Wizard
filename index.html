@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#183e3a">
+  <meta name="description" content="เครื่องมือจัดทำการพิจารณาของฝ่ายอำนวยการแบบเป็นขั้นตอน ข้อมูลอยู่ในเบราว์เซอร์ของคุณ">
+  <title>Staff Study Wizard — การพิจารณาของฝ่ายอำนวยการ</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/guide.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="./"><span class="brand-icon" aria-hidden="true">S<span>·</span>S</span><span>Staff Study<span class="brand-sub">WIZARD / เครื่องมือจัดทำข้อพิจารณา</span></span></a>
+      <p class="nav-caption">กระบวนการพิจารณา <span>12 ขั้นตอน</span></p>
+      <nav id="steps" aria-label="ขั้นตอนการจัดทำ"></nav>
+      <div class="sidebar-bottom"><span class="local-mark" aria-hidden="true">●</span> LOCAL-FIRST <p>ข้อมูลที่กรอกในเวอร์ชันนี้ถูกจัดเก็บภายใน Browser ของอุปกรณ์นี้เท่านั้น</p></div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar"><div><span class="eyebrow">การพิจารณาของฝ่ายอำนวยการ</span><h1 id="project-name">งานพิจารณาใหม่</h1></div><span id="save-status" role="status">พร้อมเริ่มต้น</span></header>
+      <main id="main" tabindex="-1">
+        <div class="progress-heading"><span id="step-counter"></span><span id="progress-label"></span></div>
+        <div class="progress-track"><div id="progress-fill"></div></div>
+        <section class="page-heading"><span id="step-english" class="eyebrow"></span><h2 id="step-title"></h2><p id="step-description"></p></section>
+        <div id="errors" role="alert" hidden></div>
+        <aside id="step-guide" class="study-guide no-print" aria-label="คำแนะนำและเอกสารอ้างอิงสำหรับขั้นนี้"></aside>
+        <form id="wizard-form" novalidate><div id="step-content"><p>กำลังเตรียมเครื่องมือ…</p></div></form>
+        <footer class="step-footer"><button id="previous" class="button secondary" type="button">← ย้อนกลับ</button><span id="footer-hint">แก้ไขข้อมูลย้อนหลังได้ทุกขั้นตอน</span><button id="next" class="button primary" type="button">ถัดไป →</button></footer>
+        <div class="utility"><button type="button" id="new-project">เริ่มงานใหม่</button><button type="button" id="clear-data">ล้างข้อมูลทั้งหมด</button><span>ไม่มีการส่งข้อมูลไปยังเซิร์ฟเวอร์</span></div>
+      </main>
+    </div>
+  </div>
+  <noscript>กรุณาเปิดใช้งาน JavaScript เพื่อใช้ Staff Study Wizard</noscript>
+</body>
+</html>

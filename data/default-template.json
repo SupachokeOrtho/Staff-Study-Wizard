@@ -1,0 +1,12 @@
+{
+  "version":1,"step":0,"maxStep":0,
+  "project":{"title":"","author":"","unit":"","date":"","notes":""},
+  "desired":{"policy":"","facts":"","state":"","evidence":""},
+  "current":{"state":"","facts":"","metrics":"","evidence":""},
+  "problem":{"gap":"","undesired":"","text":""},
+  "effects":[],"causes":[],
+  "root":{"text":"","reason":"","reduction":""},
+  "statement":{"task":"","purpose":"","manual":null},
+  "endStates":[],"solutions":[],"criteria":[],
+  "recommendation":"","conclusion":null
+}
