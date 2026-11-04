@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { newSolution, passesSFA, sfaResult, ranking, weightInfo, validateStep, statementText, recommended } from '../js/model.js';
+import { newSolution, passesSFA, sfaResult, ranking, weightInfo, validateStep, statementText, recommended, reviewIssues } from '../js/model.js';
 import { freshDraft, loadDraft, saveDraft, STORAGE_KEY } from '../js/storage.js';
 import { generateDocument, exportFilename } from '../js/export.js';
 
@@ -75,7 +75,7 @@ test('scores require explicit integers 1–5 and both criterion categories', () 
   assert.ok(validateStep(9, draft, rules).some(error => error.includes('Efficiency')));
 });
 
-test('single passing solution needs no comparison; zero passes blocks SFA progression', () => {
+test('single passing solution needs no comparison; zero passes remains an unresolved SFA issue', () => {
   const draft = freshDraft(template);
   draft.solutions = [passing('วิธีเดียว')];
   assert.deepEqual(validateStep(8, draft, rules), []);
@@ -117,4 +117,38 @@ test('text output includes all sections, evidence, Thai and manual conclusion; f
   for (const value of ['1. สภาวะพึงประสงค์', '10. ข้อยุติ', 'หลักฐานสำคัญ', 'ข้อแถลงแก้ไขเอง', 'ข้อยุติแก้ไขเอง', 'Residual Risk']) assert.ok(output.includes(value));
   assert.equal(exportFilename(draft, new Date(2026, 10, 4)), 'staff-study-รายงาน-ทดสอบ-2026-11-04.txt');
   assert.equal(new TextDecoder().decode(new TextEncoder().encode(output)), output);
+});
+
+test('incomplete drafts remain reviewable and never claim a passing solution when none passes', () => {
+  const draft = freshDraft(template);
+  draft.step = 11;
+  draft.maxStep = 11;
+  const issues = reviewIssues(draft, rules);
+  assert.ok(issues.some(issue => issue.step === 0 && issue.errors.some(error => error.includes('Project title'))));
+  assert.ok(issues.some(issue => issue.step === 5 && issue.errors.some(error => error.includes('สาเหตุที่แท้จริง'))));
+  const output = generateDocument(draft, rules);
+  assert.ok(output.startsWith('ฉบับร่าง'));
+  assert.ok(output.includes('ยังไม่มีวิธีผ่าน SFA'));
+  assert.ok(!output.includes('มีวิธีผ่าน SFA เพียง 1 วิธี'));
+  const storage = memory();
+  saveDraft(draft, storage);
+  assert.equal(loadDraft(template, storage).draft.step, 11);
+});
+
+test('fully completed studies export without the draft marker; later missing analysis restores it', () => {
+  const draft = freshDraft(template);
+  for (const key of ['project', 'desired', 'current', 'problem', 'root']) {
+    for (const field of Object.keys(draft[key])) draft[key][field] ||= 'ข้อมูลที่ตรวจสอบแล้ว';
+  }
+  draft.effects = [{ id: 'e', text: 'ผลกระทบ', affected: 'หน่วย', severity: 'สูง', evidence: 'หลักฐาน' }];
+  draft.causes = [{ id: 'c', text: 'สาเหตุ', category: 'ขั้นตอน', evidence: 'หลักฐาน', link: 'เหตุผล' }];
+  draft.statement.task = 'ปรับกระบวนงาน';
+  draft.statement.purpose = 'ส่งรายงานทัน';
+  draft.endStates = [{ id: 'end', text: 'รายงานเสร็จภายใน 2 วัน' }];
+  draft.solutions = [passing('วิธีที่ผ่านการพิจารณา')];
+  assert.deepEqual(reviewIssues(draft, rules), []);
+  assert.ok(!generateDocument(draft, rules).startsWith('ฉบับร่าง'));
+  draft.root.text = '';
+  assert.ok(generateDocument(draft, rules).startsWith('ฉบับร่าง'));
+  assert.equal(reviewIssues(draft, rules).find(issue => issue.step === 5).errors.length, 1);
 });

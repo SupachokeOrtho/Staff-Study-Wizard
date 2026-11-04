@@ -100,23 +100,22 @@ class WizardBrowserTests(unittest.TestCase):
         self.fill_form('หลักฐานและเหตุผลประกอบการประเมิน')
 
     def test_full_flow_refresh_sfa_comparison_offline_and_export(self):
-        self.assertTrue(self.page.locator('[data-step="7"]').is_disabled())
-        self.page.locator('#next').click()
-        self.step(1)
-        expect(self.page.locator('#errors')).to_be_visible()
+        self.assertTrue(self.page.locator('[data-step="7"]').is_enabled())
         self.fill_analysis()
 
-        # All candidates evaluated, but none passing: no forward progression.
+        # Free navigation never turns failing SFA into a passing result.
         for i in range(2):
             self.field(f'solutions.{i}.sfa.S.status').select_option('fail')
         self.page.locator('#next').click()
+        self.step(11)
+        expect(self.page.locator('#conclusion-summary')).to_contain_text('ยังไม่มีวิธีผ่าน SFA')
+        self.page.locator('[data-step="8"]').click()
         self.step(9)
-        expect(self.page.locator('#errors')).to_contain_text('ยังไม่มีวิธีผ่าน SFA')
 
         # Exactly one pass skips comparison in both navigation directions.
         self.field('solutions.0.sfa.S.status').select_option('pass')
         self.next(11)
-        self.assertTrue(self.page.locator('[data-step="9"]').is_disabled())
+        self.assertTrue(self.page.locator('[data-step="9"]').is_enabled())
         self.page.locator('#previous').click()
         self.step(9)
         self.field('solutions.1.sfa.S.status').select_option('pass')
@@ -132,8 +131,12 @@ class WizardBrowserTests(unittest.TestCase):
         for control, value in zip(scores.all(), ['5', '2', '1', '5']):
             control.fill(value)
         self.page.locator('#next').click()
+        self.step(11)
+        self.next(12)
+        expect(self.page.locator('#review-summary')).to_contain_text('น้ำหนัก')
+        expect(self.page.locator('#preview')).to_contain_text('ฉบับร่าง')
+        self.page.locator('[data-step="9"]').click()
         self.step(10)
-        expect(self.page.locator('#errors')).to_contain_text('น้ำหนัก')
         self.field('criteria.1.weight').fill('40')
         expect(self.page.locator('#score-output')).to_contain_text('3.400')
         expect(self.page.locator('#score-output .winner')).to_contain_text('ปรับกระบวนงาน')
@@ -153,6 +156,7 @@ class WizardBrowserTests(unittest.TestCase):
         self.assertIn('สาเหตุที่แท้จริง', self.field('conclusion').input_value())
         self.field('conclusion').fill('ข้อยุติภาษาไทยที่แก้ไขเอง เสนอให้ปรับกระบวนงาน')
         self.next(12)
+        expect(self.page.locator('#preview')).not_to_contain_text('ฉบับร่าง')
         expect(self.page.locator('#preview')).to_contain_text('ข้อยุติภาษาไทยที่แก้ไขเอง')
         self.page.locator('[data-guide-toggle="preview:main"] > summary').click()
         self.page.locator('[data-guide-toggle="preview:writing"] > summary').click()
@@ -189,12 +193,16 @@ class WizardBrowserTests(unittest.TestCase):
         self.page.reload()
         self.step(11)
         self.assertEqual(self.field('conclusion').input_value(), 'ข้อยุติภาษาไทยที่แก้ไขเอง เสนอให้ปรับกระบวนงาน')
-        # Clearing earlier analysis must invalidate forward navigation.
+        # Earlier edits appear in review without blocking navigation.
         self.page.locator('[data-step="5"]').click()
         self.field('root.text').fill('')
         self.page.locator('[data-step="11"]').click()
+        self.step(12)
+        expect(self.page.locator('#review-summary')).to_contain_text('สาเหตุที่แท้จริง')
+        expect(self.page.locator('#preview')).to_contain_text('ฉบับร่าง')
+        self.page.locator('#review-summary > summary').click()
+        self.page.locator('[data-review-step="5"]').click()
         self.step(6)
-        expect(self.page.locator('#errors')).to_contain_text('สาเหตุที่แท้จริง')
 
     def test_mobile_delete_confirmation_and_clear(self):
         self.page.set_viewport_size({'width': 390, 'height': 844})
@@ -214,8 +222,10 @@ class WizardBrowserTests(unittest.TestCase):
         self.page.once('dialog', lambda dialog: dialog.accept())
         self.page.locator('[data-delete="solutions"]').click()
         self.page.locator('#next').click()
-        self.step(8)
-        expect(self.page.locator('#errors')).to_contain_text('อย่างน้อย 1')
+        self.step(9)
+        self.page.locator('[data-step="11"]').click()
+        self.step(12)
+        expect(self.page.locator('#review-summary')).to_contain_text('อย่างน้อย 1')
         self.assertFalse(self.page.evaluate('document.documentElement.scrollWidth > innerWidth'))
 
     def test_unreadable_storage_is_not_silently_overwritten(self):
@@ -225,6 +235,34 @@ class WizardBrowserTests(unittest.TestCase):
         self.field('project.title').fill('งานชั่วคราว')
         self.assertEqual(self.page.evaluate('(key) => localStorage.getItem(key)', KEY), '{corrupt')
         expect(self.page.locator('#save-status')).to_contain_text('ยังไม่ได้บันทึก')
+
+    def test_jump_to_every_step_with_empty_first_page_and_restore_partial_work(self):
+        for index in range(12):
+            button = self.page.locator(f'[data-step="{index}"]')
+            self.assertTrue(button.is_enabled())
+            button.click()
+            self.step(index + 1)
+        expect(self.page.locator('#preview')).to_contain_text('ฉบับร่าง')
+        expect(self.page.locator('#preview')).not_to_contain_text('มีวิธีผ่าน SFA เพียง 1 วิธี')
+        with self.page.expect_download() as download_info:
+            self.page.locator('[data-action="download"]').click()
+        raw = Path(download_info.value.path()).read_text(encoding='utf-8-sig')
+        self.assertTrue(raw.startswith('ฉบับร่าง'))
+        self.page.locator('[data-step="7"]').click()
+        self.page.locator('[data-add="solutions"]').click()
+        self.field('solutions.0.name').fill('วิธีที่จดไว้ก่อนวิเคราะห์ครบ')
+        self.page.reload()
+        self.step(8)
+        expect(self.field('solutions.0.name')).to_have_value('วิธีที่จดไว้ก่อนวิเคราะห์ครบ')
+        self.page.locator('[data-step="0"]').click()
+        expect(self.field('project.title')).to_have_value('')
+        self.next(2)
+        self.page.locator('[data-step="7"]').click()
+        expect(self.field('solutions.0.name')).to_have_value('วิธีที่จดไว้ก่อนวิเคราะห์ครบ')
+        self.page.set_viewport_size({'width': 390, 'height': 844})
+        self.page.locator('[data-step="3"]').click()
+        self.step(4)
+        self.assertFalse(self.page.evaluate('document.documentElement.scrollWidth > innerWidth'))
 
     def test_second_tab_cannot_silently_overwrite_work(self):
         self.field('project.title').fill('งานในแท็บแรก')

@@ -1,12 +1,13 @@
 import { localDate } from './storage.js';
-import { statementText, sfaResult, ranking, recommended, passedSolutions } from './model.js';
+import { statementText, sfaResult, ranking, recommended, passedSolutions, reviewIssues } from './model.js';
 
 const resultLabels = { pass: 'ผ่าน', fail: 'ไม่ผ่าน', pending: 'ยังประเมินไม่ครบ', yes: 'ยอมรับได้', no: 'ยอมรับไม่ได้' };
 const valueText = value => resultLabels[value] || value || '—';
 const fieldsText = (object, fields) => fields.map(field => `${field.label}: ${valueText(object[field.key])}`).join('\n');
 
 export function comparisonText(draft, rules) {
-  if (passedSolutions(draft).length <= 1) return 'ไม่ต้องเปรียบเทียบ เนื่องจากมีวิธีผ่าน SFA เพียง 1 วิธี';
+  if (passedSolutions(draft).length === 0) return 'ยังไม่มีวิธีผ่าน SFA จึงยังเปรียบเทียบวิธีการไม่ได้';
+  if (passedSolutions(draft).length === 1) return 'ไม่ต้องเปรียบเทียบ เนื่องจากมีวิธีผ่าน SFA เพียง 1 วิธี';
   const rows = ranking(draft, rules);
   return [
     ...draft.criteria.map((criterion, i) => `${i + 1}. ${criterion.name} (${rules.criterionCategories.find(category => category.value === criterion.category)?.label || ''})\nคำนิยาม: ${criterion.definition}\nน้ำหนัก: ${criterion.weight}\n${passedSolutions(draft).map(solution => `${solution.name}: คะแนน ${criterion.scores[solution.id] || '—'}`).join('\n')}`),
@@ -25,13 +26,14 @@ export function generateConclusion(draft, rules) {
     `กิจ: ${draft.statement.task}\nมุ่งประสงค์: ${draft.statement.purpose}\nข้อแถลงปัญหา: ${statementText(draft)}`,
     `END STATE:\n${draft.endStates.map((item, i) => `${i + 1}. ${item.text}`).join('\n')}`,
     `วิธีการที่พิจารณาและผล SFA:\n${draft.solutions.map((solution, i) => `${i + 1}. ${solution.name} — S: ${valueText(solution.sfa.S.status)} / F: ${valueText(solution.sfa.F.status)} / A: ${valueText(solution.sfa.A.status)} / ผลรวม: ${valueText(sfaResult(solution))}`).join('\n')}`,
-    passedSolutions(draft).length > 1 ? `ผล Superior Solution:\n${comparisonText(draft, rules)}` : rules.help.singlePass,
+    passedSolutions(draft).length > 1 ? `ผล Superior Solution:\n${comparisonText(draft, rules)}` : passedSolutions(draft).length === 1 ? rules.help.singlePass : rules.help.noPass,
     `วิธีการที่ได้รับการเสนอเป็นข้อยุติ: ${choice?.name || 'ยังไม่ได้เลือก'}\n${choice?.details || ''}`
   ].join('\n\n');
 }
 
 export function generateDocument(draft, rules) {
-  return [
+  const draftNotice = reviewIssues(draft, rules).length ? 'ฉบับร่าง — ข้อมูลหรือการพิจารณายังไม่ครบ โปรดตรวจทานก่อนใช้จริง\n\n' : '';
+  return draftNotice + [
     'การพิจารณาของฝ่ายอำนวยการ',
     `เรื่อง: ${draft.project.title}\nผู้จัดทำ: ${draft.project.author}\nหน่วย: ${draft.project.unit}\nวันที่: ${draft.project.date}\nหมายเหตุ: ${draft.project.notes || '—'}`,
     `1. สภาวะพึงประสงค์\n${fieldsText(draft.desired, rules.sections.desired.fields)}`,

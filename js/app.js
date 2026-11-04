@@ -1,5 +1,5 @@
 import { STORAGE_KEY, freshDraft, loadDraft, saveDraft } from './storage.js';
-import { uid, newSolution, passedSolutions, sfaResult, weightInfo, ranking, recommended, statementText, validateStep } from './model.js';
+import { uid, newSolution, passedSolutions, sfaResult, weightInfo, ranking, recommended, statementText, validateStep, reviewIssues } from './model.js';
 import { generateConclusion, generateDocument, downloadText } from './export.js';
 import { loadGuide, renderGuide } from './guide.js';
 
@@ -84,6 +84,12 @@ function scoreOutput() {
   }).join('')}</tbody></table></div>${!rows.length ? '<p class="muted">กรอกน้ำหนักและคะแนนให้ครบก่อนจัดอันดับ</p>' : rows.filter(row => Math.abs(row.score - top) < 1e-9).length > 1 ? note('คะแนนสูงสุดเท่ากัน โปรดทบทวนเกณฑ์และเลือกวิธีที่เสนอในขั้นข้อยุติ') : ''}`;
 }
 
+function reviewSummary() {
+  const issues = reviewIssues(draft, rules);
+  if (!issues.length) return '<div class="note" id="review-summary" role="status">✓ กรอกข้อมูลจำเป็นและผลการพิจารณาครบแล้ว โปรดตรวจความถูกต้องของเนื้อหาก่อนนำไปใช้</div>';
+  return `<details class="note" id="review-summary"><summary>ฉบับร่าง — ยังมีข้อมูลที่ต้องตรวจสอบใน ${issues.length} ขั้น (กดดูรายการ)</summary><p>เปิดข้ามขั้นและส่งออกร่างได้ ข้อความส่งออกจะระบุว่าเป็นฉบับร่างจนกว่าข้อมูลจำเป็นและการพิจารณาจะครบ</p>${issues.map(issue => `<div class="review-issue"><button type="button" class="button secondary" data-review-step="${issue.step}">ไปขั้นที่ ${issue.step + 1}: ${escape(issue.title)}</button><ul>${issue.errors.map(error => `<li>${escape(error)}</li>`).join('')}</ul></div>`).join('')}</details>`;
+}
+
 function renderStep() {
   const step = draft.step;
   if (step < 4) {
@@ -92,7 +98,7 @@ function renderStep() {
     let body = fields(key, section.fields);
     if (step === 0) {
       body = field('project.title', section.fields[0]) + `<div class="grid">${section.fields.slice(1, 4).map(definition => field(`project.${definition.key}`, definition)).join('')}</div>` + field('project.notes', section.fields[4]);
-      return note('<strong>เริ่มจากปัญหา แล้วจึงพิจารณาวิธีแก้</strong>เครื่องมือนี้จะช่วยเรียบเรียงข้อมูลอย่างเป็นลำดับ ตั้งแต่สภาวะพึงประสงค์จนถึงข้อยุติ โดยคุณเป็นผู้วิเคราะห์และตัดสินใจ') + card(section.title, body, section.tag) + '<p class="muted">ช่องที่มี * เป็นข้อมูลจำเป็นสำหรับการไปขั้นถัดไป</p>';
+      return note('<strong>เริ่มจากปัญหา แล้วจึงพิจารณาวิธีแก้</strong>เครื่องมือนี้จะช่วยเรียบเรียงข้อมูลอย่างเป็นลำดับ ตั้งแต่สภาวะพึงประสงค์จนถึงข้อยุติ โดยคุณเป็นผู้วิเคราะห์และตัดสินใจ เลือกเปิดขั้นใดจากเมนูก็ได้ และกลับมาเติมข้อมูลภายหลัง') + card(section.title, body, section.tag) + '<p class="muted">ช่องที่มี * เป็นข้อมูลจำเป็นสำหรับเอกสารฉบับสมบูรณ์ แต่ไม่บังคับกรอกก่อนข้ามขั้น</p>';
     }
     const compare = step === 3 ? `<div class="comparison"><div><h3>สภาวะพึงประสงค์</h3><p>${escape(draft.desired.state)}</p></div><div><h3>สภาวะปัจจุบัน</h3><p>${escape(draft.current.state)}</p></div></div>` : '';
     return compare + card(section.title, body, section.tag);
@@ -103,13 +109,14 @@ function renderStep() {
   if (step === 7) return note(`<strong>วิธีการที่เหมาะสมควร</strong><ul>${rules.solutionReminder.map(item => `<li>${escape(item)}</li>`).join('')}</ul>`) + listCards('solutions', rules.solutionFields, 'วิธีการ') + addButton('solutions', 'เพิ่มวิธีการแก้ปัญหา');
   if (step === 8) return note(`<strong>มุ่งประสงค์: ${escape(draft.statement.purpose)}</strong><ul>${draft.endStates.map(item => `<li>${escape(item.text)}</li>`).join('')}</ul>`) + draft.solutions.map((solution, index) => card(`${index + 1}. ${solution.name}`, `<p class="muted">${escape(solution.details)}</p>${Object.entries(rules.sfa).map(([key, section]) => `<div class="sfa-section"><h3><span class="sfa-letter">${key}</span>${escape(section.title)}</h3><p class="muted">${escape(section.help)}</p>${key === 'A' ? '<h4>Worthiness / ความคุ้มค่า และ Risk / ความเสี่ยง</h4>' : ''}${fields(`solutions.${index}.sfa.${key}`, section.fields)}</div>`).join('')}`)).join('') + card('ผลการทดสอบ', '<div id="sfa-summary"></div>');
   if (step === 9) {
+    if (passedSolutions(draft).length <= 1) return note(passedSolutions(draft).length === 1 ? escape(rules.help.singlePass) : 'ยังไม่มีวิธีผ่าน SFA การเปรียบเทียบใช้เมื่อมีวิธีผ่านมากกว่า 1 วิธี คุณสามารถอ่านคู่มือขั้นนี้และกลับไปกรอกหรือทบทวน SFA ได้ทุกเมื่อ');
     return note(`<strong>สร้างเกณฑ์จากผลลัพธ์และการใช้ทรัพยากร</strong>${rules.criterionCategories.map(category => `<p><b>${escape(category.label)}</b> — ${escape(category.help)}</p>`).join('')}มุ่งประสงค์: ${escape(draft.statement.purpose)}<ul>${draft.endStates.map(item => `<li>${escape(item.text)}</li>`).join('')}</ul>`) + draft.criteria.map((criterion, index) => `<section class="card"><div class="card-title"><h3>เกณฑ์ ${index + 1}</h3><button class="delete-button" type="button" data-delete="criteria" data-index="${index}" aria-label="ลบเกณฑ์ ${index + 1}">ลบรายการ</button></div>${fields(`criteria.${index}`, [{ key: 'name', label: 'ชื่อตัวเกณฑ์', type: 'text', required: true }, { key: 'category', label: 'ประเภท', type: 'select', options: rules.criterionCategories, required: true }, { key: 'definition', label: 'คำนิยาม', required: true }, { key: 'weight', label: 'น้ำหนัก', type: 'number', min: 0, required: true, help: 'ใช้สัดส่วนรวม 1.00 หรือตัวเลขเปอร์เซ็นต์รวม 100 ทุกเกณฑ์ต้องใช้หน่วยเดียวกัน' }])}<h4>คะแนนแต่ละวิธี (1–5; คะแนนมาก = ดีกว่า)</h4><p class="muted">สำหรับเวลาและต้นทุน ให้คะแนนสูงกับวิธีที่ใช้เวลาและต้นทุนน้อยกว่า</p><div class="grid">${passedSolutions(draft).map(solution => field(`criteria.${index}.scores.${solution.id}`, { label: solution.name, type: 'number', min: rules.validation.scoreMin, max: rules.validation.scoreMax, step: 1, required: true })).join('')}</div></section>`).join('') + addButton('criteria', 'เพิ่มเกณฑ์เปรียบเทียบ') + card('ผลการเปรียบเทียบ', '<div id="score-output"></div>');
   }
   if (step === 10) {
     const choice = recommended(draft, rules);
     return card('สรุปผลการพิจารณา', '<div id="conclusion-summary" class="generated"></div>') + card('วิธีการที่เสนอ และข้อยุติ', `<label class="field"><span class="field-label">วิธีการที่ได้รับการเสนอเป็นข้อยุติ</span><select id="recommendation" data-path="recommendation">${passedSolutions(draft).map(solution => `<option value="${escape(solution.id)}" ${solution.id === choice?.id ? 'selected' : ''}>${escape(solution.name)}</option>`).join('')}</select><small>ค่าเริ่มต้นคือวิธีที่ได้คะแนนสูงสุด สามารถทบทวนและเลือกวิธีที่ผ่าน SFA อื่นได้</small></label>` + field('conclusion', { label: 'ข้อยุติฉบับสุดท้าย (แก้ไขได้)', rows: 16, help: 'ข้อความที่แก้เองจะถูกเก็บไว้ เมื่อเปลี่ยนข้อมูลก่อนหน้า โปรดตรวจทานหรือสร้างข้อยุติใหม่' }) + '<button type="button" class="button secondary" data-action="reset-conclusion">ใช้ข้อความสรุปอัตโนมัติ</button>');
   }
-  return `<div class="actions no-print"><button class="button primary" type="button" data-action="download">↓ ดาวน์โหลด .txt</button><button class="button secondary" type="button" data-action="copy">คัดลอกทั้งหมด / Copy all</button><button class="button secondary" type="button" data-action="print">พิมพ์ / Print</button><button class="button secondary" type="button" data-action="edit">กลับไปแก้ไข</button></div><p id="export-status" class="status-message no-print" role="status"></p><pre id="preview" class="document"></pre>`;
+  return `${reviewSummary()}<div class="actions no-print"><button class="button primary" type="button" data-action="download">↓ ดาวน์โหลด .txt</button><button class="button secondary" type="button" data-action="copy">คัดลอกทั้งหมด / Copy all</button><button class="button secondary" type="button" data-action="print">พิมพ์ / Print</button><button class="button secondary" type="button" data-action="edit">กลับไปแก้ไข</button></div><p id="export-status" class="status-message no-print" role="status"></p><pre id="preview" class="document"></pre>`;
 }
 
 function updateDerived() {
@@ -133,10 +140,13 @@ function updateDerived() {
 function render(focus = false) {
   const step = draft.step;
   const definition = rules.workflow[step];
-  const skipComparison = passedSolutions(draft).length <= 1;
-  $('#steps').innerHTML = rules.workflow.map((item, index) => `<button type="button" class="step-link ${index === step ? 'active' : ''} ${index < draft.maxStep ? 'done' : ''}" data-step="${index}" ${index > draft.maxStep || (index === 9 && skipComparison) ? 'disabled' : ''} ${index === step ? 'aria-current="step"' : ''}><span class="step-number">${String(index + 1).padStart(2, '0')}</span><span class="step-label">${escape(item.title)}${index === 9 && skipComparison ? '<span class="skipped-note">ใช้เมื่อมีวิธีผ่าน SFA มากกว่า 1 วิธี</span>' : ''}</span></button>`).join('');
+  $('#steps').innerHTML = rules.workflow.map((item, index) => {
+    const applicable = index !== 9 || passedSolutions(draft).length > 1;
+    const complete = index < 11 && applicable && !validateStep(index, draft, rules).length;
+    return `<button type="button" class="step-link ${index === step ? 'active' : ''} ${complete ? 'done' : ''}" data-step="${index}" aria-label="ขั้นที่ ${index + 1}: ${escape(item.title)}" ${index === step ? 'aria-current="step"' : ''}><span class="step-number">${String(index + 1).padStart(2, '0')}</span><span class="step-label">${escape(item.title)}${index === 9 && !applicable ? '<span class="skipped-note">ใช้เมื่อมีวิธีผ่าน SFA มากกว่า 1 วิธี</span>' : ''}</span></button>`;
+  }).join('');
   $('#step-counter').textContent = `ขั้นที่ ${step + 1} / 12`;
-  $('#progress-label').textContent = step === 11 ? 'พร้อมตรวจทานเอกสาร' : 'วิเคราะห์ → พิจารณา → เสนอข้อยุติ';
+  $('#progress-label').textContent = step === 11 ? 'ตรวจความครบถ้วนก่อนนำไปใช้' : 'เลือกข้ามขั้นจากเมนูได้ · ข้อมูลบันทึกอัตโนมัติ';
   $('#progress-fill').style.width = `${(step + 1) / 12 * 100}%`;
   $('#step-title').textContent = definition.title;
   $('#step-english').textContent = `${String(step + 1).padStart(2, '0')} / ${definition.english}`;
@@ -161,21 +171,9 @@ function showErrors(errors) {
   $('#errors').scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
-function navigate(target) {
+function navigate(target, sequential = false) {
   if (target < 0 || target > 11) return;
-  if (target > draft.step) {
-    for (let index = 0; index < target; index++) {
-      const errors = validateStep(index, draft, rules);
-      if (errors.length) {
-        draft.step = index;
-        render(true);
-        showErrors(errors);
-        persist();
-        return;
-      }
-    }
-  }
-  if (target === 9 && passedSolutions(draft).length === 1) target = target > draft.step ? 10 : 8;
+  if (sequential && target === 9 && passedSolutions(draft).length <= 1) target = target > draft.step ? 10 : 8;
   draft.step = target;
   draft.maxStep = Math.max(draft.maxStep, target);
   persist();
@@ -248,11 +246,6 @@ async function init() {
     storageBlocked = loaded.blocked;
     storageWarning = loaded.warning;
     try { lastSavedRaw = localStorage.getItem(STORAGE_KEY); } catch { /* handled by loaded warning */ }
-    // A restored page must also respect prerequisites if data was edited outside the app.
-    for (let index = 0; index < draft.step; index++) {
-      if (validateStep(index, draft, rules).length) { draft.step = index; break; }
-    }
-    if (draft.step === 9 && passedSolutions(draft).length <= 1) draft.step = 8;
     $('#wizard-form').addEventListener('submit', event => event.preventDefault());
     $('#step-guide').addEventListener('toggle', event => {
       const key = event.target.dataset.guideToggle;
@@ -274,6 +267,7 @@ async function init() {
     $('#step-content').addEventListener('click', event => {
       const button = event.target.closest('button');
       if (!button) return;
+      if (button.dataset.reviewStep !== undefined) navigate(Number(button.dataset.reviewStep));
       if (button.dataset.add) addItem(button.dataset.add);
       if (button.dataset.delete) {
         const list = button.dataset.delete;
@@ -289,8 +283,8 @@ async function init() {
       }
       if (button.dataset.action) handleAction(button.dataset.action);
     });
-    $('#next').addEventListener('click', () => navigate(draft.step + 1));
-    $('#previous').addEventListener('click', () => navigate(draft.step - 1));
+    $('#next').addEventListener('click', () => navigate(draft.step + 1, true));
+    $('#previous').addEventListener('click', () => navigate(draft.step - 1, true));
     $('#new-project').addEventListener('click', resetProject);
     $('#clear-data').addEventListener('click', resetProject);
     window.addEventListener('storage', event => {

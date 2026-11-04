@@ -85,3 +85,12 @@ export function validateStep(index, draft, rules) {
   }
   return errors;
 }
+
+// Navigation is free; these checks describe document readiness, not access.
+export function reviewIssues(draft, rules) {
+  return rules.workflow.slice(0, 11).map((step, index) => ({
+    step: index,
+    title: step.title,
+    errors: validateStep(index, draft, rules)
+  })).filter(result => result.errors.length);
+}
